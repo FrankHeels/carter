@@ -1,0 +1,293 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }} — CARTER CLOTHING{% endblock %}
+
+{% block extra_css %}
+<!-- Product detail page specific styles live inline for now. -->
+{% endblock %}
+
+{% block content %}
+<main class="min-h-screen bg-black pt-24 text-white">
+    <div class="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-20">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-20">
+            <div class="lg:col-span-7">
+                <div class="relative aspect-[3/4] overflow-hidden bg-zinc-900" id="product-gallery">
+                    {% for image in product.images.all %}
+                        <div class="gallery-slide absolute inset-0 transition-opacity duration-500 {% if not forloop.first %}pointer-events-none opacity-0{% endif %}" data-color-id="{{ image.color_id|default:'' }}">
+                            <img src="{{ image.image.url }}" alt="{{ product.name }} - фото {{ forloop.counter }}" class="h-full w-full object-cover" loading="lazy">
+                        </div>
+                    {% empty %}
+                        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-zinc-800">
+                            No Image Available
+                        </div>
+                    {% endfor %}
+
+                    <button id="gallery-prev" type="button" class="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/20 bg-black/40 text-white transition-all hover:bg-black/80">
+                        &#8592;
+                    </button>
+                    <button id="gallery-next" type="button" class="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/20 bg-black/40 text-white transition-all hover:bg-black/80">
+                        &#8594;
+                    </button>
+
+                    <div class="absolute bottom-4 right-4 z-10 text-[10px] font-black tracking-widest text-white/50">
+                        <span id="gallery-current">1</span> / <span id="gallery-total">1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="h-fit space-y-12 lg:sticky lg:top-32 lg:col-span-5">
+                <div class="space-y-6">
+                    <h1 class="text-4xl font-black uppercase leading-none tracking-tighter md:text-6xl">
+                        {{ product.name }}
+                    </h1>
+
+                    <div class="flex items-center gap-6">
+                        <span class="text-3xl font-black tracking-tighter">{{ product.price }} ₽</span>
+                        {% if product.old_price %}
+                            <span class="text-xl font-bold text-zinc-600 line-through">{{ product.old_price }} ₽</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="group flex cursor-help items-center justify-between border border-zinc-900 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-700">
+                        <div class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                            Оплата частями <br>
+                            <span class="mt-1 block text-xs text-white">4 платежа по {{ product.get_quarter_price|default:"2 497" }} ₽</span>
+                        </div>
+                        <div class="flex h-6 w-6 items-center justify-center rounded-full border border-zinc-800 text-[10px] text-zinc-600 transition-all group-hover:border-white group-hover:text-white">?</div>
+                    </div>
+                </div>
+
+                {% regroup product.get_variants_grouped by color as variants_by_color %}
+
+                {% if variants_by_color %}
+                    <div class="space-y-4">
+                        <span class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600">
+                            Цвет: <span id="selected-color-name" class="text-white">{{ variants_by_color.0.grouper.name }}</span>
+                        </span>
+                        <div class="flex gap-3">
+                            {% for color_group in variants_by_color %}
+                                <button type="button" class="color-btn h-8 w-8 rounded-full border-2 transition-all hover:scale-110 {% if forloop.first %}border-white{% else %}border-transparent{% endif %}" data-color-id="{{ color_group.grouper.id }}" data-color-name="{{ color_group.grouper.name }}" data-hex="{{ color_group.grouper.hex_code }}"></button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="space-y-4">
+                    <div class="flex items-end justify-between">
+                        <span class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600">Размер</span>
+                        <button type="button" class="text-[9px] font-bold uppercase text-zinc-500 underline underline-offset-4 transition-colors hover:text-white">
+                            Size Guide
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3" id="size-selector">
+                        {% for color_group in variants_by_color %}
+                            {% for variant in color_group.list %}
+                                <button
+                                    type="button"
+                                    class="size-btn border border-zinc-900 py-5 text-xs font-black uppercase transition-all hover:border-zinc-500 {% if not variant.is_available %}cursor-not-allowed opacity-30{% endif %} {% if not forloop.parentloop.first %}hidden{% endif %}"
+                                    data-color-id="{{ color_group.grouper.id }}"
+                                    data-variant-id="{{ variant.id }}"
+                                    data-in-stock="{% if variant.is_available %}1{% else %}0{% endif %}"
+                                    {% if not variant.is_available %}disabled{% endif %}
+                                >
+                                    {{ variant.size.name }}
+                                </button>
+                            {% endfor %}
+                        {% empty %}
+                            <p class="col-span-3 text-xs uppercase tracking-widest text-zinc-600">Нет в наличии</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <form id="add-to-cart-form" method="post" action="" data-cart-action-template="{% url 'cart_add' 0 %}" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" value="1">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <input type="hidden" name="open_cart" value="0">
+
+                    <button id="add-to-cart-submit" type="submit" disabled class="w-full bg-white py-7 text-[10px] font-black uppercase tracking-[0.4em] text-black transition-all duration-300 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500">
+                        Добавить в корзину
+                    </button>
+                    <p id="add-to-cart-hint" class="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+                        Выберите доступный размер, чтобы добавить товар в корзину.
+                    </p>
+                </form>
+
+                <div class="space-y-2 border-t border-zinc-900 pt-8">
+                    {% include "shop/includes/accordion.html" with title="Описание товара" content=product.description %}
+                    {% include "shop/includes/accordion.html" with title="Состав и уход" content=product.care_instructions %}
+                    {% include "shop/includes/accordion.html" with title="Доставка и возврат" content="Бесплатная доставка при заказе от 15 000 ₽. Возврат в течение 14 дней." %}
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".color-btn").forEach((btn) => {
+            btn.style.backgroundColor = btn.dataset.hex;
+        });
+
+        const allSlides = Array.from(document.querySelectorAll(".gallery-slide"));
+        const currentEl = document.getElementById("gallery-current");
+        const totalEl = document.getElementById("gallery-total");
+        const prevBtn = document.getElementById("gallery-prev");
+        const nextBtn = document.getElementById("gallery-next");
+        const colorButtons = Array.from(document.querySelectorAll(".color-btn"));
+        const sizeButtons = Array.from(document.querySelectorAll(".size-btn"));
+        const sizeSelector = document.getElementById("size-selector");
+        const selectedColorName = document.getElementById("selected-color-name");
+        const addToCartForm = document.getElementById("add-to-cart-form");
+        const addToCartSubmit = document.getElementById("add-to-cart-submit");
+        const addToCartHint = document.getElementById("add-to-cart-hint");
+
+        let activeSlides = allSlides;
+        let current = 0;
+
+        const showSlide = (index) => {
+            allSlides.forEach((slide) => {
+                slide.classList.add("opacity-0", "pointer-events-none");
+                slide.classList.remove("opacity-100");
+            });
+
+            if (activeSlides[index]) {
+                activeSlides[index].classList.remove("opacity-0", "pointer-events-none");
+                activeSlides[index].classList.add("opacity-100");
+            }
+
+            if (currentEl) {
+                currentEl.textContent = activeSlides.length ? String(index + 1) : "0";
+            }
+            if (totalEl) {
+                totalEl.textContent = String(activeSlides.length);
+            }
+        };
+
+        const updateArrows = () => {
+            const show = activeSlides.length > 1;
+            prevBtn?.classList.toggle("hidden", !show);
+            nextBtn?.classList.toggle("hidden", !show);
+        };
+
+        const filterGallery = (colorId) => {
+            const filtered = allSlides.filter((slide) => slide.dataset.colorId === colorId);
+            activeSlides = filtered.length > 0 ? filtered : allSlides;
+            current = 0;
+            showSlide(current);
+            updateArrows();
+        };
+
+        const buildCartAction = (variantId) => {
+            if (!addToCartForm) {
+                return "";
+            }
+
+            return addToCartForm.dataset.cartActionTemplate.replace(/0$/, variantId);
+        };
+
+        const syncCartForm = (variantButton = null) => {
+            if (!addToCartForm || !addToCartSubmit || !addToCartHint) {
+                return;
+            }
+
+            if (variantButton && !variantButton.disabled && variantButton.dataset.inStock === "1") {
+                addToCartForm.action = buildCartAction(variantButton.dataset.variantId);
+                addToCartSubmit.disabled = false;
+                addToCartHint.textContent = "Товар будет добавлен в корзину, а вы останетесь на странице товара.";
+                return;
+            }
+
+            addToCartForm.action = "";
+            addToCartSubmit.disabled = true;
+            addToCartHint.textContent = "Выберите доступный размер, чтобы добавить товар в корзину.";
+        };
+
+        const clearSizeSelection = () => {
+            sizeButtons.forEach((button) => {
+                button.classList.remove("border-white", "bg-white", "text-black");
+            });
+            syncCartForm();
+        };
+
+        const selectColor = (colorId, colorName) => {
+            if (selectedColorName) {
+                selectedColorName.textContent = colorName;
+            }
+
+            colorButtons.forEach((button) => {
+                button.classList.toggle("border-white", button.dataset.colorId === colorId);
+                button.classList.toggle("border-transparent", button.dataset.colorId !== colorId);
+            });
+
+            sizeButtons.forEach((button) => {
+                const matchesColor = button.dataset.colorId === colorId;
+                button.classList.toggle("hidden", !matchesColor);
+                if (!matchesColor) {
+                    button.classList.remove("border-white", "bg-white", "text-black");
+                }
+            });
+
+            clearSizeSelection();
+            filterGallery(colorId);
+        };
+
+        nextBtn?.addEventListener("click", () => {
+            if (!activeSlides.length) {
+                return;
+            }
+
+            current = (current + 1) % activeSlides.length;
+            showSlide(current);
+        });
+
+        prevBtn?.addEventListener("click", () => {
+            if (!activeSlides.length) {
+                return;
+            }
+
+            current = (current - 1 + activeSlides.length) % activeSlides.length;
+            showSlide(current);
+        });
+
+        colorButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                selectColor(button.dataset.colorId, button.dataset.colorName);
+            });
+        });
+
+        sizeSelector?.addEventListener("click", (event) => {
+            const button = event.target.closest(".size-btn");
+            if (!button || button.disabled) {
+                return;
+            }
+
+            sizeButtons.forEach((node) => {
+                node.classList.remove("border-white", "bg-white", "text-black");
+            });
+            button.classList.add("border-white", "bg-white", "text-black");
+            syncCartForm(button);
+        });
+
+        totalEl.textContent = String(allSlides.length);
+        updateArrows();
+
+        if (colorButtons[0]) {
+            selectColor(colorButtons[0].dataset.colorId, colorButtons[0].dataset.colorName);
+        } else {
+            syncCartForm();
+        }
+
+        document.querySelectorAll(".accordion-trigger").forEach((trigger) => {
+            trigger.addEventListener("click", () => {
+                const content = trigger.nextElementSibling;
+                content.classList.toggle("hidden");
+            });
+        });
+    });
+</script>
+{% endblock %}

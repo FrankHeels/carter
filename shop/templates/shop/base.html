@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CARTER CLOTHING{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+
+    {% block extra_css %}{% endblock %}
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap");
+        body { background-color: #000; color: #fff; margin: 0; overflow-x: hidden; }
+        .hero-gradient { background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-black text-white antialiased selection:bg-white selection:text-black">
+    <header class="fixed top-0 left-0 z-30 flex w-full items-center justify-between p-6 transition-all duration-500 md:px-12" id="main-header">
+        <div class="logo">
+            <a href="{% url 'product_list' %}" class="text-2xl font-black tracking-tighter transition-opacity hover:opacity-80">CARTER</a>
+        </div>
+        <nav class="flex items-center gap-3 md:gap-4">
+            <button type="button" data-cart-trigger class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:opacity-70">
+                Корзина (<span id="cart-count">{{ cart_state|length }}</span>)
+            </button>
+            <a
+                href="{% url 'cart_detail' %}"
+                data-cart-page-link
+                aria-label="Перейти в корзину"
+                class="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white transition-all hover:border-white hover:bg-white hover:text-black"
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.25 9.25V7.75C8.25 5.67893 9.92893 4 12 4C14.0711 4 15.75 5.67893 15.75 7.75V9.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6.25 9.25H17.75L18.75 20H5.25L6.25 9.25Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        </nav>
+    </header>
+
+    <div id="cart-overlay" class="fixed inset-0 z-40 hidden bg-black/60 opacity-0 backdrop-blur-sm transition-opacity duration-300"></div>
+
+    <aside id="cart-drawer" class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md translate-x-full flex-col border-l border-zinc-900 bg-black text-white transition-transform duration-300 ease-in-out">
+        <div class="flex items-center justify-between border-b border-zinc-900 p-6">
+            <h2 class="text-sm font-black uppercase tracking-[0.2em]">Корзина (<span id="drawer-cart-count">{{ cart_state|length }}</span>)</h2>
+            <button id="close-cart-btn" type="button" class="cursor-pointer p-2 text-zinc-500 transition-colors hover:text-white">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 1L1 13M1 1L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <div id="cart-items-container" class="flex-1 space-y-6 overflow-y-auto p-6">
+            {% if cart_state|length %}
+                {% for item in cart_state %}
+                    <article class="grid grid-cols-[72px_1fr] gap-4 border-b border-zinc-900 pb-4" data-drawer-item data-variant-id="{{ item.variant.id }}">
+                        {% with item.variant.main_image as main_image %}
+                            <div class="aspect-[3/4] overflow-hidden bg-zinc-900">
+                                {% if main_image %}
+                                    <img src="{{ main_image.image.url }}" alt="{{ item.variant.product.name }}" class="h-full w-full object-cover">
+                                {% else %}
+                                    <div class="flex h-full items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] text-zinc-700">
+                                        No Image
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endwith %}
+
+                        <div class="space-y-2">
+                            <div class="text-xs font-black uppercase tracking-[0.2em]">{{ item.variant.product.name }}</div>
+                            <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                                {{ item.variant.color.name }} / {{ item.variant.size.name }}
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-zinc-400" data-drawer-quantity>Qty: {{ item.quantity }}</span>
+                                <span class="font-bold" data-drawer-line-total>{{ item.total_price }} ₽</span>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="py-12 text-center text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                    Ваша корзина пуста
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="border-t border-zinc-900 bg-black p-6">
+            <div class="mb-6 flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Итого</span>
+                <span class="text-lg font-black tracking-tighter" id="cart-subtotal">{{ cart_state.get_total_price }} ₽</span>
+            </div>
+            <a href="{% url 'cart_detail' %}" class="block w-full bg-white py-5 text-center text-[10px] font-black uppercase tracking-[0.4em] text-black transition-all duration-300 hover:bg-zinc-200">
+                Перейти в корзину
+            </a>
+            <p class="mt-4 text-center text-[9px] uppercase tracking-widest text-zinc-600">Бесплатная доставка от 15 000 ₽</p>
+        </div>
+    </aside>
+
+    {% block content %}{% endblock %}
+
+    <footer class="border-t border-zinc-900 bg-black p-6 text-zinc-400 md:p-12 lg:p-20">
+        <div class="mb-24 grid grid-cols-1 gap-16 md:grid-cols-3">
+            <div class="space-y-8">
+                <p class="max-w-xs text-sm italic leading-relaxed text-zinc-500">
+                    «Самое страшное в достижении целей — не начать, а продолжать, когда ничего не получается»
+                </p>
+                <div class="flex space-x-6 text-[10px] font-black uppercase tracking-widest text-white">
+                    <a href="#" class="transition-colors hover:text-zinc-400">Telegram</a>
+                    <a href="#" class="transition-colors hover:text-zinc-400">VKontakte</a>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-white">Клиентский сервис</h4>
+                <div class="flex flex-col space-y-3">
+                    <a href="#" class="text-xs underline decoration-zinc-800 underline-offset-4 hover:text-white">Поддержка @carter</a>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter text-zinc-600">Ежедневно: 07:00 - 17:00</span>
+                    <a href="#" class="text-xs transition-colors hover:text-white">Заказы и доставка</a>
+                    <a href="#" class="text-xs transition-colors hover:text-white">Возврат товара</a>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-white">Информация</h4>
+                <div class="flex flex-col space-y-3">
+                    <a href="#" class="text-xs transition-colors hover:text-white">Оферта</a>
+                    <a href="#" class="text-xs transition-colors hover:text-white">Политика конфиденциальности</a>
+                    <a href="#" class="text-xs transition-colors hover:text-white">О бренде</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center justify-between border-t border-zinc-900 pt-12 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-700 md:flex-row">
+            <span>© {% now "Y" %} CARTER CLOTHING</span>
+            <span class="mt-4 italic opacity-50 md:mt-0">Power of will</span>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        window.CarterCartUI = {
+            formatPrice(value) {
+                return `${value} ₽`;
+            },
+
+            sync(payload) {
+                const cartCount = document.getElementById("cart-count");
+                const drawerCartCount = document.getElementById("drawer-cart-count");
+                const cartSubtotal = document.getElementById("cart-subtotal");
+
+                if (cartCount) {
+                    cartCount.textContent = String(payload.cart_count);
+                }
+                if (drawerCartCount) {
+                    drawerCartCount.textContent = String(payload.cart_count);
+                }
+                if (cartSubtotal) {
+                    cartSubtotal.textContent = this.formatPrice(payload.cart_subtotal);
+                }
+
+                const drawerItem = document.querySelector(
+                    `[data-drawer-item][data-variant-id="${payload.variant_id}"]`
+                );
+
+                if (!drawerItem) {
+                    return;
+                }
+
+                const drawerQuantity = drawerItem.querySelector("[data-drawer-quantity]");
+                const drawerLineTotal = drawerItem.querySelector("[data-drawer-line-total]");
+
+                if (drawerQuantity) {
+                    drawerQuantity.textContent = `Qty: ${payload.quantity}`;
+                }
+                if (drawerLineTotal) {
+                    drawerLineTotal.textContent = this.formatPrice(payload.line_total);
+                }
+            },
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const header = document.getElementById("main-header");
+            const cartDrawer = document.getElementById("cart-drawer");
+            const cartOverlay = document.getElementById("cart-overlay");
+            const cartTrigger = document.querySelector("[data-cart-trigger]");
+            const closeCartBtn = document.getElementById("close-cart-btn");
+
+            window.addEventListener("scroll", () => {
+                if (!header) {
+                    return;
+                }
+
+                if (window.scrollY > 100) {
+                    header.classList.add("bg-black/90", "backdrop-blur-md", "py-4");
+                    header.classList.remove("py-6");
+                } else {
+                    header.classList.remove("bg-black/90", "backdrop-blur-md", "py-4");
+                    header.classList.add("py-6");
+                }
+            });
+
+            const openCart = () => {
+                if (!cartDrawer || !cartOverlay) {
+                    return;
+                }
+
+                cartOverlay.classList.remove("hidden");
+                setTimeout(() => cartOverlay.classList.remove("opacity-0"), 10);
+                cartDrawer.classList.remove("translate-x-full");
+                document.body.style.overflow = "hidden";
+            };
+
+            const closeCart = () => {
+                if (!cartDrawer || !cartOverlay) {
+                    return;
+                }
+
+                cartOverlay.classList.add("opacity-0");
+                cartDrawer.classList.add("translate-x-full");
+                document.body.style.overflow = "";
+                setTimeout(() => cartOverlay.classList.add("hidden"), 300);
+            };
+
+            cartTrigger?.addEventListener("click", openCart);
+            closeCartBtn?.addEventListener("click", closeCart);
+            cartOverlay?.addEventListener("click", closeCart);
+            window.addEventListener("open-cart-drawer", openCart);
+
+            const url = new URL(window.location.href);
+            if (url.searchParams.get("cart") === "open") {
+                openCart();
+                url.searchParams.delete("cart");
+                window.history.replaceState({}, "", url);
+            }
+        });
+    </script>
+</body>
+</html>

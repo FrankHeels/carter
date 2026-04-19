@@ -1,0 +1,201 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Оформление заказа — CARTER CLOTHING{% endblock %}
+
+{% block content %}
+<main class="min-h-screen bg-black pt-24 text-white">
+    <div class="mx-auto max-w-[1440px] px-6 py-12 md:px-12 lg:px-20">
+        <div class="mb-10 flex flex-col gap-4 border-b border-zinc-900 pb-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="space-y-3">
+                <p class="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500">Guest Checkout</p>
+                <h1 class="text-4xl font-black uppercase tracking-tighter md:text-6xl">Оформление заказа</h1>
+                <p class="max-w-2xl text-sm leading-relaxed text-zinc-400">
+                    Оставьте контакты и адрес доставки. Мы зафиксируем состав заказа по текущей корзине и передадим его в обработку.
+                </p>
+            </div>
+
+            <div class="border border-zinc-900 bg-zinc-950/50 px-5 py-4 text-right">
+                <div class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500">Товаров</div>
+                <div class="mt-2 text-3xl font-black tracking-tighter">{{ cart|length }}</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
+            <section class="lg:col-span-7">
+                <form method="post" novalidate class="space-y-8">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-100">
+                            <div class="text-[10px] font-black uppercase tracking-[0.3em] text-red-300">Нужно проверить заказ</div>
+                            <div class="mt-2 space-y-1">
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <section class="border border-zinc-900 bg-zinc-950/30 p-6 md:p-8">
+                        <div class="mb-6 flex items-center justify-between border-b border-zinc-900 pb-4">
+                            <div>
+                                <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Контакты</h2>
+                                <p class="mt-2 text-sm text-zinc-400">Эти данные нужны, чтобы подтвердить заказ и связаться с вами по доставке.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <label for="{{ form.customer_name.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.customer_name.label }}</label>
+                                {{ form.customer_name }}
+                                {% for error in form.customer_name.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.customer_email.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.customer_email.label }}</label>
+                                {{ form.customer_email }}
+                                {% for error in form.customer_email.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.customer_phone.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.customer_phone.label }}</label>
+                                {{ form.customer_phone }}
+                                {% for error in form.customer_phone.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="border border-zinc-900 bg-zinc-950/30 p-6 md:p-8">
+                        <div class="mb-6 flex items-center justify-between border-b border-zinc-900 pb-4">
+                            <div>
+                                <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Доставка</h2>
+                                <p class="mt-2 text-sm text-zinc-400">Заполните адрес так, как курьеру будет удобно его использовать без уточнений.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div>
+                                <label for="{{ form.delivery_city.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.delivery_city.label }}</label>
+                                {{ form.delivery_city }}
+                                {% for error in form.delivery_city.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.delivery_postal_code.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.delivery_postal_code.label }}</label>
+                                {{ form.delivery_postal_code }}
+                                {% for error in form.delivery_postal_code.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="{{ form.delivery_street.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.delivery_street.label }}</label>
+                                {{ form.delivery_street }}
+                                {% for error in form.delivery_street.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.delivery_house.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.delivery_house.label }}</label>
+                                {{ form.delivery_house }}
+                                {% for error in form.delivery_house.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.delivery_apartment.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.delivery_apartment.label }}</label>
+                                {{ form.delivery_apartment }}
+                                {% for error in form.delivery_apartment.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="{{ form.delivery_comment.id_for_label }}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{{ form.delivery_comment.label }}</label>
+                                {{ form.delivery_comment }}
+                                {% for error in form.delivery_comment.errors %}
+                                    <p class="mt-2 text-sm text-red-300">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="flex flex-col gap-4 border-t border-zinc-900 pt-2 md:flex-row md:items-center">
+                        <button type="submit" class="w-full bg-white px-8 py-5 text-[10px] font-black uppercase tracking-[0.4em] text-black transition-colors hover:bg-zinc-200 md:w-auto">
+                            Подтвердить заказ
+                        </button>
+                        <a href="{% url 'cart_detail' %}" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 transition-colors hover:text-white">
+                            Вернуться в корзину
+                        </a>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="lg:col-span-5">
+                <div class="space-y-6 border border-zinc-900 bg-zinc-950/50 p-6 lg:sticky lg:top-32">
+                    <div class="border-b border-zinc-900 pb-4">
+                        <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Ваш заказ</h2>
+                        <p class="mt-2 text-sm text-zinc-400">Состав заказа фиксируется в том виде, в котором вы подтверждаете его сейчас.</p>
+                    </div>
+
+                    <div class="space-y-5">
+                        {% for item in cart %}
+                            <article class="grid grid-cols-[88px_1fr] gap-4 border-b border-zinc-900 pb-5">
+                                {% with item.variant.main_image as main_image %}
+                                    <div class="aspect-[3/4] overflow-hidden bg-zinc-900">
+                                        {% if main_image %}
+                                            <img src="{{ main_image.image.url }}" alt="{{ item.variant.product.name }}" class="h-full w-full object-cover">
+                                        {% else %}
+                                            <div class="flex h-full items-center justify-center text-[9px] font-black uppercase tracking-[0.3em] text-zinc-700">
+                                                No Image
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endwith %}
+
+                                <div class="space-y-3">
+                                    <div>
+                                        <h3 class="text-xs font-black uppercase tracking-[0.2em] text-white">{{ item.variant.product.name }}</h3>
+                                        <p class="mt-1 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                                            {{ item.variant.color.name }} / {{ item.variant.size.name }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs text-zinc-300">
+                                        <span>Qty: {{ item.quantity }}</span>
+                                        <span class="font-black">{{ item.total_price }} ₽</span>
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-400">Позиции</span>
+                            <span>{{ cart|length }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-400">Итого</span>
+                            <span class="text-xl font-black tracking-tighter">{{ cart.get_total_price }} ₽</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-zinc-900 pt-4 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                        Бесплатная доставка от 15 000 ₽. После оформления мы подтвердим заказ и уточним детали доставки при необходимости.
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</main>
+{% endblock %}

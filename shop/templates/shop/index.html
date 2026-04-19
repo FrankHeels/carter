@@ -1,0 +1,72 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}CARTER CLOTHING — Официальный сайт{% endblock %}
+
+{% block content %}
+<main class="pt-24 min-h-screen">
+    <!-- Сетка товаров -->
+    <section class="p-6 md:px-12 lg:px-20 pb-20">
+        <div class="flex justify-between items-end mb-16">
+            <div class="flex items-center space-x-6">
+                <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter">Вся одежда</h2>
+                <span class="bg-zinc-900 px-3 py-1 text-xs font-bold rounded-sm text-zinc-500 border border-zinc-800">
+                    {{ products|length|default:"0" }}
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-10">
+            {% for product in products %}
+            <a href="{{ product.get_absolute_url }}" class="group block cursor-pointer">
+                <div class="relative aspect-[3/4] overflow-hidden mb-6 bg-zinc-900">
+                    {% with product.get_main_image as main_image %}
+                    {% if main_image %}
+                    <img src="{{ main_image.image.url }}"
+                         alt="{{ product.name }}"
+                         class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                         loading="lazy">
+                    {% endif %}
+                    {% endwith %}
+                    
+                    {% if product.discount_percent %}
+                    <div class="absolute top-3 right-3 bg-white text-black text-[10px] font-black px-2.5 py-1 uppercase italic tracking-tighter">
+                        -{{ product.discount_percent }}%
+                    </div>
+                    {% endif %}
+                    
+                    {% if product.stock > 0 and product.stock <= 5 %}
+                    <div class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 uppercase tracking-tighter">
+                        Осталось: {{ product.stock }}
+                    </div>
+                    {% elif product.stock == 0 %}
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                        <span class="border border-white/20 bg-black/40 px-6 py-3 text-[10px] font-black uppercase tracking-[0.4em] text-white">Sold Out</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="space-y-2">
+                    <h3 class="font-bold text-xs md:text-sm uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">
+                        {{ product.name }}
+                    </h3>
+                    
+                    <div class="flex space-x-3 items-center">
+                        <span class="font-black text-lg tracking-tighter">{{ product.price }} ₽</span>
+                        {% if product.old_price %}
+                        <span class="text-zinc-600 line-through text-xs font-bold">{{ product.old_price }} ₽</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% empty %}
+            <!-- Состояние для пустого списка -->
+            <div class="col-span-full py-40 text-center space-y-4">
+                <div class="text-zinc-800 font-black text-6xl uppercase tracking-tighter opacity-20">No Items</div>
+                <p class="text-zinc-600 text-[10px] uppercase font-bold tracking-[0.2em]">Мы скоро добавим новые модели</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

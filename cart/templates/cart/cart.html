@@ -1,0 +1,207 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Корзина — CARTER CLOTHING{% endblock %}
+
+{% block content %}
+<main class="min-h-screen bg-black pt-24 text-white">
+    <div class="mx-auto max-w-[1440px] px-6 py-12 md:px-12 lg:px-20">
+        {% if cart|length %}
+            <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
+                <section class="space-y-6 lg:col-span-8">
+                    <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+                        <h1 class="text-3xl font-black uppercase tracking-tighter md:text-5xl">
+                            Корзина
+                        </h1>
+
+                        <form method="post" action="{% url 'cart_clear' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 transition-colors hover:text-white">
+                                Очистить корзину
+                            </button>
+                        </form>
+                    </div>
+
+                    {% for item in cart %}
+                        <article class="grid grid-cols-[120px_1fr] gap-4 border-b border-zinc-900 pb-6 md:grid-cols-[160px_1fr]" data-cart-item data-variant-id="{{ item.variant.id }}">
+                            {% with item.variant.main_image as main_image %}
+                                <div class="aspect-[3/4] overflow-hidden bg-zinc-900">
+                                    {% if main_image %}
+                                        <img src="{{ main_image.image.url }}" alt="{{ item.variant.product.name }}" class="h-full w-full object-cover">
+                                    {% else %}
+                                        <div class="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
+                                            No Image
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endwith %}
+
+                            <div class="space-y-4">
+                                <div class="space-y-1">
+                                    <h2 class="text-sm font-black uppercase tracking-[0.2em] md:text-base">
+                                        {{ item.variant.product.name }}
+                                    </h2>
+                                    <p class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                                        {{ item.variant.color.name }} / {{ item.variant.size.name }}
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 gap-3 text-xs text-zinc-300 md:grid-cols-3">
+                                    <div>
+                                        <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Цена</span>
+                                        <span>{{ item.variant.product.price }} ₽</span>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Количество</span>
+                                        <form method="post" action="{% url 'cart_update' item.variant.id %}" class="mt-2 inline-flex items-center border border-zinc-800 bg-zinc-950/60" data-cart-stepper>
+                                            {% csrf_token %}
+                                            <button type="submit" name="stepper_action" value="decrement" class="flex h-11 w-11 items-center justify-center text-lg font-black transition-colors hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:text-zinc-700 disabled:hover:bg-transparent disabled:hover:text-zinc-700" data-stepper-button="decrement" {% if item.quantity <= 1 %}disabled{% endif %}>
+                                                -
+                                            </button>
+                                            <span class="flex h-11 min-w-14 items-center justify-center border-x border-zinc-800 px-4 text-sm font-black text-white" data-cart-quantity>{{ item.quantity }}</span>
+                                            <button type="submit" name="stepper_action" value="increment" class="flex h-11 w-11 items-center justify-center text-lg font-black transition-colors hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:text-zinc-700 disabled:hover:bg-transparent disabled:hover:text-zinc-700" data-stepper-button="increment" {% if item.quantity >= item.variant.stock %}disabled{% endif %}>
+                                                +
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Сумма</span>
+                                        <span data-cart-line-total>{{ item.total_price }} ₽</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-3 md:flex-row md:items-end">
+                                    <form method="post" action="{% url 'cart_remove' item.variant.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="border border-zinc-800 px-5 py-3 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 transition-colors hover:border-red-500 hover:text-red-400">
+                                            Удалить
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <aside class="h-fit border border-zinc-900 p-6 lg:col-span-4">
+                    <h2 class="mb-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
+                        Order Summary
+                    </h2>
+
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-400">Товаров</span>
+                            <span data-cart-page-count>{{ cart|length }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-400">Subtotal</span>
+                            <span class="font-black" data-cart-page-subtotal>{{ cart.get_total_price }} ₽</span>
+                        </div>
+                    </div>
+
+                    <p class="mt-6 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                        Бесплатная доставка от 15 000 ₽. Checkout появится на следующем этапе.
+                    </p>
+
+                    <a href="{% url 'orders:checkout' %}" class="mt-6 block w-full bg-white py-5 text-center text-[10px] font-black uppercase tracking-[0.4em] text-black transition-colors hover:bg-zinc-200">
+                        Checkout
+                    </a>
+                </aside>
+            </div>
+        {% else %}
+            <section class="space-y-6 py-24 text-center">
+                <h1 class="text-4xl font-black uppercase tracking-tighter md:text-6xl">
+                    Корзина пуста
+                </h1>
+                <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                    Добавьте вещи из каталога, чтобы продолжить покупку.
+                </p>
+                <a href="{% url 'product_list' %}" class="inline-block bg-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.4em] text-black transition-colors hover:bg-zinc-200">
+                    Вернуться в каталог
+                </a>
+            </section>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const formatPrice = (value) => `${value} ₽`;
+
+        document.querySelectorAll("[data-cart-stepper]").forEach((form) => {
+            form.addEventListener("submit", async (event) => {
+                const submitter = event.submitter;
+                if (!(submitter instanceof HTMLButtonElement)) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const row = form.closest("[data-cart-item]");
+                if (!row) {
+                    window.location.reload();
+                    return;
+                }
+
+                const requestBody = new FormData(form);
+                requestBody.set("stepper_action", submitter.value);
+
+                const decrementButton = form.querySelector('[data-stepper-button="decrement"]');
+                const incrementButton = form.querySelector('[data-stepper-button="increment"]');
+
+                if (decrementButton) {
+                    decrementButton.disabled = true;
+                }
+                if (incrementButton) {
+                    incrementButton.disabled = true;
+                }
+
+                try {
+                    const response = await fetch(form.getAttribute("action"), {
+                        method: "POST",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                        body: requestBody,
+                    });
+
+                    if (!response.ok) {
+                        window.location.reload();
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    const quantityNode = row.querySelector("[data-cart-quantity]");
+                    const lineTotalNode = row.querySelector("[data-cart-line-total]");
+                    const pageCountNode = document.querySelector("[data-cart-page-count]");
+                    const pageSubtotalNode = document.querySelector("[data-cart-page-subtotal]");
+
+                    if (quantityNode) {
+                        quantityNode.textContent = String(payload.quantity);
+                    }
+                    if (lineTotalNode) {
+                        lineTotalNode.textContent = formatPrice(payload.line_total);
+                    }
+                    if (pageCountNode) {
+                        pageCountNode.textContent = String(payload.cart_count);
+                    }
+                    if (pageSubtotalNode) {
+                        pageSubtotalNode.textContent = formatPrice(payload.cart_subtotal);
+                    }
+                    if (decrementButton) {
+                        decrementButton.disabled = !payload.can_decrement;
+                    }
+                    if (incrementButton) {
+                        incrementButton.disabled = !payload.can_increment;
+                    }
+
+                    window.CarterCartUI?.sync(payload);
+                } catch (error) {
+                    window.location.reload();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
