@@ -7,6 +7,12 @@ class OrderStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class TelegramNotificationStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    SENT = "sent", "Sent"
+    FAILED = "failed", "Failed"
+
+
 class Order(models.Model):
     status = models.CharField(
         max_length=20,
@@ -58,3 +64,34 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         return f"OrderItem #{self.pk} for order #{self.order_id}"
+
+
+class TelegramNotification(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="telegram_notifications",
+    )
+    chat_id = models.CharField(max_length=50)
+    status = models.CharField(
+        max_length=20,
+        choices=TelegramNotificationStatus.choices,
+        default=TelegramNotificationStatus.PENDING,
+    )    
+    attempts = models.PositiveIntegerField(default=0)
+    next_attempt_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True, default="")
+    
+    class Meta:
+        """Сочетание Заказ-Чат должно быть уникальным, 
+        чтобы не отправлять несколько уведомлений об одном заказе одному менеджеру.
+        """
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "chat_id"],
+                name="unique_notification_per_order_and_chat"
+            )
+        ]
