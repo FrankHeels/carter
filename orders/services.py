@@ -1,10 +1,20 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from typing import Any, Mapping, TypedDict
 
 from cart.cart import Cart
 from shop.models import ProductVariant
-from .models import Order, OrderItem, OrderStatus
+from .models import (
+    Order, 
+    OrderItem, 
+    OrderStatus, 
+    TelegramNotification, 
+    TelegramNotificationStatus
+)
 
 
 class CartRow(TypedDict):
@@ -93,6 +103,37 @@ def _extract_order_data(cleaned_data: Mapping[str, Any]) -> GuestCheckoutData:
         "delivery_comment": cleaned_data["delivery_comment"],
     }
 
+def _get_notification_chat_ids() -> list[str]:
+    if not getattr(settings, "TELEGRAM_NOTIFICATIONS_ENABLED", False):
+        return []
+    
+    return [
+        str(chat_id).strip()
+        for chat_id in getattr(settings, "TELEGRAM_MANAGER_CHAT_IDS", [])
+        if str(chat_id).strip()
+    ]
+
+def _create_telegram_notifications(order: Order) -> None:
+    chat_ids = _get_notification_chat_ids()
+
+    if not chat_ids:
+        return 
+    
+    next_attempt_at = timezone.now() + timedelta(
+        minutes=getattr(settings, "TELEGRAM_NOTIFICATION_RETRY_MINUTES", 10)
+    )
+
+    TelegramNotification.objects.bulk_create(
+        [
+            TelegramNotification(
+                order=order,
+                chat_id=chat_id,
+                status=TelegramNotificationStatus.PENDING,
+                next_attempt_at=next_attempt_at,
+            )
+            for chat_id in chat_ids
+        ]
+    )
 
 def place_order_from_cart(cart: Cart, cleaned_data: Mapping[str, Any]) -> Order:
     # Получаем актуальные данные по товарам в корзине
@@ -171,6 +212,8 @@ def place_order_from_cart(cart: Cart, cleaned_data: Mapping[str, Any]) -> Order:
             variant = item["variant"]
             variant.stock -= item["quantity"]
             variant.save()
+
+        _create_telegram_notifications(order)
 
         transaction.on_commit(cart.clear)
     return order
