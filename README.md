@@ -74,6 +74,10 @@ Required variables:
 - `SECRET_KEY`
 - `DEBUG`
 - `ALLOWED_HOSTS`
+- `TELEGRAM_NOTIFICATIONS_ENABLED`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_MANAGER_CHAT_IDS`
+- `TELEGRAM_NOTIFICATION_RETRY_MINUTES`
 
 ### 5. Run database migrations
 
@@ -105,6 +109,29 @@ Run the orders test module:
 
 ```powershell
 .\.venv\Scripts\python.exe manage.py test orders.tests --settings=config.settings.test
+```
+
+## Telegram Notifications
+
+Order Telegram delivery uses a database outbox and a Django management command. Checkout creates pending notification rows; the command sends only due `pending` and `failed` rows, so no Celery or Redis is required.
+
+Configure Telegram in `.env`:
+
+- `TELEGRAM_NOTIFICATIONS_ENABLED` - set to `True` to create notification rows during checkout.
+- `TELEGRAM_BOT_TOKEN` - Telegram bot token used for `sendMessage`.
+- `TELEGRAM_MANAGER_CHAT_IDS` - comma-separated manager chat ids.
+- `TELEGRAM_NOTIFICATION_RETRY_MINUTES` - delay before a pending or failed notification is due.
+
+Run the processor manually:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py process_telegram_notifications
+```
+
+Linux cron example:
+
+```cron
+* * * * * cd /srv/carter && ./.venv/bin/python manage.py process_telegram_notifications
 ```
 
 ## Notes

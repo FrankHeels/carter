@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, OrderItem
+from .models import Order, OrderItem, TelegramNotification
 
 
 class OrderItemInline(admin.TabularInline):
@@ -41,3 +41,16 @@ class OrderItemAdmin(admin.ModelAdmin):
         "size_name_snapshot",
     )
 
+
+@admin.register(TelegramNotification)
+class TelegramNotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        "order",
+        "chat_id",
+        "status",
+        "attempts",
+        "next_attempt_at",
+        "sent_at",
+    )
+    search_fields = ("order__id", "chat_id")
+    list_filter = ("status",)

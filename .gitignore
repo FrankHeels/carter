@@ -29,6 +29,7 @@ htmlcov/
 .playwright-mcp/
 md/
 docs/superpowers/
+graphify-out/
 
 # IDEs and editors
 .idea/
