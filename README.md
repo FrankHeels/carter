@@ -2,7 +2,7 @@
 
 **CARTER CLOTHING** - Django storefront для каталога одежды, session-based cart и guest checkout без лишней инфраструктуры. README собран как портфолио-витрина: быстро показывает UI, доменную модель, транзакционный checkout и тестируемые инженерные решения.
 
-![Carter catalog](docs/readme/catalog.png)
+![Carter catalog](readme/catalog.png)
 
 ## Stack
 
@@ -25,7 +25,7 @@
 
 | Product detail | Checkout | Order receipt |
 | --- | --- | --- |
-| ![Product detail](docs/readme/product-detail.png) | ![Checkout](docs/readme/cart-checkout.png) | ![Order success](docs/readme/order-success.png) |
+| ![Product detail](readme/product-detail.png) | ![Checkout](readme/cart-checkout.png) | ![Order success](readme/order-success.png) |
 
 ## Engineering Highlights
 
