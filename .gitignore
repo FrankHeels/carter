@@ -28,7 +28,7 @@ htmlcov/
 # Tooling and local artifacts
 .playwright-mcp/
 md/
-docs/superpowers/
+docs/
 graphify-out/
 
 # IDEs and editors

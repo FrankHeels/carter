@@ -1,75 +1,93 @@
 # Carter
 
-Small Django storefront project with a product catalog, session-based cart, and guest checkout flow.
+**CARTER CLOTHING** - Django storefront для каталога одежды, session-based cart и guest checkout без лишней инфраструктуры. README собран как портфолио-витрина: быстро показывает UI, доменную модель, транзакционный checkout и тестируемые инженерные решения.
+
+![Carter catalog](docs/readme/catalog.png)
 
 ## Stack
 
-- Python
-- Django 5.2
-- Django templates
-- SQLite for local development
-- `python-decouple` for environment variables
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-5.2-092E20?style=flat-square&logo=django&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-local-003B57?style=flat-square&logo=sqlite&logoColor=white)
+![Templates](https://img.shields.io/badge/Django%20Templates-server%20rendered-111111?style=flat-square)
+![Tailwind](https://img.shields.io/badge/Tailwind%20CSS-CDN-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Telegram](https://img.shields.io/badge/Telegram-Bot%20API-26A5E4?style=flat-square&logo=telegram&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-Django%20TestCase-444444?style=flat-square)
 
-## Project Layout
+## Demo Flow
 
-- `config/` - Django project config and settings package
-- `shop/` - catalog, product detail pages, and catalog models
-- `cart/` - session cart logic, cart views, and cart tests
-- `orders/` - checkout flow, order snapshots, and order tests
+1. Каталог товаров с изображениями, ценами и ручной сортировкой.
+2. Product detail: галерея, выбор цвета и размера, проверка доступных `ProductVariant`.
+3. Session cart drawer и отдельная cart page с AJAX stepper для изменения количества.
+4. Guest checkout с контактами, адресом доставки и summary заказа.
+5. Success receipt с зафиксированными snapshot-данными заказа.
+6. Telegram manager notification через database outbox и management command.
 
-## Local Setup
+| Product detail | Checkout | Order receipt |
+| --- | --- | --- |
+| ![Product detail](docs/readme/product-detail.png) | ![Checkout](docs/readme/cart-checkout.png) | ![Order success](docs/readme/order-success.png) |
 
-### 1. Create a virtual environment
+## Engineering Highlights
 
-Windows:
+- `ProductVariant` - центральная складская сущность: связывает товар, цвет, размер, stock и доступность варианта.
+- `Cart` хранится в Django session, самовосстанавливает устаревшие строки, удаляет недоступные варианты и ограничивает quantity текущим stock.
+- Checkout вынесен в service layer и выполняется через `transaction.atomic`, `select_for_update` и `transaction.on_commit(cart.clear)`.
+- `OrderItem` хранит snapshot полей товара, цены, цвета и размера, поэтому receipt не ломается после изменений каталога.
+- Telegram notifications реализованы как outbox: checkout создает `TelegramNotification`, а `process_telegram_notifications` отправляет due-сообщения и планирует retry после ошибок.
+- Для окружений разделены `config.settings.dev` и `config.settings.test`; тестовые настройки не зависят от локального `.env`.
+- Django admin настроен для управления каталогом, заказами, order items и диагностикой Telegram notification retries.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    UI["Django templates UI"] --> Shop["shop\nProduct, ProductVariant, images"]
+    Shop --> Cart["cart\nsession Cart"]
+    Cart --> Checkout["orders\ncheckout service"]
+    Checkout --> Order["Order + OrderItem\nsnapshots"]
+    Checkout --> Outbox["TelegramNotification\noutbox rows"]
+    Outbox --> Command["process_telegram_notifications"]
+    Command --> Telegram["Telegram Bot API"]
+```
+
+## Testing Focus
+
+В тестах проекта зафиксированы не только happy path, но и бизнес-инварианты:
+
+- cart core: add/increment/decrement/remove/clear, runtime cache invalidation, удаление битых session rows;
+- cart views: POST-only операции, AJAX JSON payload, redirect back to product, cart drawer state;
+- checkout transaction: создание заказа, списание stock, очистка cart после commit;
+- order snapshots: цены и названия остаются историческими после изменений каталога;
+- Telegram outbox: создание notification rows, формат сообщения, retry после ошибки, sent notifications не переотправляются;
+- success page: одноразовый `last_order_id` в session и receipt из snapshot-данных.
+
+```powershell
+.\.venv\Scripts\python.exe manage.py check --settings=config.settings.test
+.\.venv\Scripts\python.exe manage.py test cart.tests --settings=config.settings.test
+.\.venv\Scripts\python.exe manage.py test orders.tests --settings=config.settings.test
+```
+
+## Quick Start
 
 ```powershell
 python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver
 ```
 
 Unix:
 
 ```bash
 python3 -m venv .venv
-```
-
-### 2. Activate the virtual environment
-
-Windows:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Unix:
-
-```bash
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-### 4. Create the local environment file
-
-Copy `.env.example` to `.env` and replace the placeholder values.
-
-Windows:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Unix:
-
-```bash
+./.venv/bin/python -m pip install -r requirements.txt
 cp .env.example .env
+./.venv/bin/python manage.py migrate
+./.venv/bin/python manage.py runserver
 ```
 
-Required variables:
+Required `.env` keys:
 
 - `SECRET_KEY`
 - `DEBUG`
@@ -79,63 +97,25 @@ Required variables:
 - `TELEGRAM_MANAGER_CHAT_IDS`
 - `TELEGRAM_NOTIFICATION_RETRY_MINUTES`
 
-### 5. Run database migrations
-
-```powershell
-.\.venv\Scripts\python.exe manage.py migrate
-```
-
-### 6. Start the development server
-
-```powershell
-.\.venv\Scripts\python.exe manage.py runserver
-```
-
-## Tests
-
-Run Django checks:
-
-```powershell
-.\.venv\Scripts\python.exe manage.py check --settings=config.settings.test
-```
-
-Run the cart test module:
-
-```powershell
-.\.venv\Scripts\python.exe manage.py test cart.tests --settings=config.settings.test
-```
-
-Run the orders test module:
-
-```powershell
-.\.venv\Scripts\python.exe manage.py test orders.tests --settings=config.settings.test
-```
-
 ## Telegram Notifications
 
-Order Telegram delivery uses a database outbox and a Django management command. Checkout creates pending notification rows; the command sends only due `pending` and `failed` rows, so no Celery or Redis is required.
-
-Configure Telegram in `.env`:
-
-- `TELEGRAM_NOTIFICATIONS_ENABLED` - set to `True` to create notification rows during checkout.
-- `TELEGRAM_BOT_TOKEN` - Telegram bot token used for `sendMessage`.
-- `TELEGRAM_MANAGER_CHAT_IDS` - comma-separated manager chat ids.
-- `TELEGRAM_NOTIFICATION_RETRY_MINUTES` - delay before a pending or failed notification is due.
-
-Run the processor manually:
+Checkout не отправляет Telegram-сообщение напрямую. Он создает pending rows в базе, а отдельная команда забирает due notifications:
 
 ```powershell
 .\.venv\Scripts\python.exe manage.py process_telegram_notifications
 ```
 
-Linux cron example:
+Cron example:
 
 ```cron
 * * * * * cd /srv/carter && ./.venv/bin/python manage.py process_telegram_notifications
 ```
 
-## Notes
+## Project Structure
 
-- Local runtime artifacts such as `.venv/`, `db.sqlite3`, `media/`, `.playwright-mcp/`, and `md/` are intentionally excluded from version control.
-- Development settings load secrets and environment-specific values from `.env`.
-- Test runs use `config.settings.test` so they do not depend on local `.env` values.
+```text
+shop/    catalog domain: products, variants, colors, sizes, images, product pages
+cart/    session cart, cart views, AJAX quantity stepper, cart context processor
+orders/  guest checkout, order snapshots, Telegram outbox, notification command
+config/  settings package, URLs, ASGI/WSGI entrypoints
+```
