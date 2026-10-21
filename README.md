@@ -122,16 +122,17 @@ flowchart TD
         Update --> Outbox["TelegramNotification · если включено"]
     end
 
-    TX --> Commit["После коммита · очистка корзины"]
-    Commit --> Receipt["🧾 Подтверждение заказа"]
-    Outbox --> Worker["Management-команда · отправка и retry"]
+    Outbox --> Commit["✅ Коммит транзакции"]
+    Commit --> Clear["Очистка корзины"]
+    Clear --> Receipt["🧾 Подтверждение заказа"]
+    Commit -. "Outbox по расписанию" .-> Worker["Management-команда · отправка и retry"]
     Worker --> Telegram["📨 Telegram Bot API"]
 
     classDef storefront fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
     classDef domain fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef messaging fill:#f3e8ff,stroke:#9333ea,color:#581c87
     class UI,Cart,Receipt storefront
-    class Checkout,Stock,Order,Update,Commit domain
+    class Checkout,Stock,Order,Update,Commit,Clear domain
     class Outbox,Worker,Telegram messaging
 ```
 
