@@ -122,7 +122,7 @@ flowchart TD
         Update --> Outbox["TelegramNotification · если включено"]
     end
 
-    Outbox --> Commit["✅ Коммит транзакции"]
+    TX --> Commit["✅ Коммит транзакции"]
     Commit --> Clear["Очистка корзины"]
     Clear --> Receipt["🧾 Подтверждение заказа"]
     Commit -. "Outbox по расписанию" .-> Worker["Management-команда · отправка и retry"]
