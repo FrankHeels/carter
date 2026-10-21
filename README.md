@@ -113,10 +113,10 @@ Carter — мой pet-проект интернет-магазина одежд�
 ```mermaid
 flowchart TD
     UI["🛍️ Каталог и карточка товара"] --> Cart["🛒 Cart · Django session"]
-    Cart --> Checkout["⚙️ place_order_from_cart"]
+    Cart --> TX
 
     subgraph TX["transaction.atomic"]
-        Checkout --> Stock["Проверка вариантов и остатков"]
+        Checkout["⚙️ place_order_from_cart"] --> Stock["Проверка вариантов и остатков"]
         Stock --> Order["Order + OrderItem · снимки данных"]
         Order --> Update["Списание остатков"]
         Update --> Outbox["TelegramNotification · если включено"]
